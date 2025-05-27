@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sudoku Solver</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(9, 40px);
+      grid-template-rows: repeat(9, 40px);
+      gap: 0;
+      justify-content: center;
+      margin: 20px auto;
+    }
+
+    .cell {
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+      text-align: center;
+      box-sizing: border-box;
+      border: 1px solid #999;
+      outline: none;
+      background: white;
+    }
+
+    .border-left {
+      border-left: 2px solid black;
+    }
+    .border-top {
+      border-top: 2px solid black;
+    }
+    .border-right {
+      border-right: 2px solid black;
+    }
+    .border-bottom {
+      border-bottom: 2px solid black;
+    }
+
+    .controls {
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 0 10px;
+      cursor: pointer;
+    }
+
+    .error {
+      color: red;
+      margin-top: 15px;
+      height: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Sudoku Solver</h1>
+  <div id="board"></div>
+
+  <div class="controls">
+    <button onclick="solveSudoku()">Solve</button>
+    <button onclick="resetBoard()">Reset</button>
+  </div>
+
+  <div id="error" class="error"></div>
+
+  <script>
+    const board = document.getElementById("board");
+
+    function showError(msg) {
+      document.getElementById("error").innerText = msg;
+    }
+
+    function getIndex(row, col) {
+      return row * 9 + col;
+    }
+
+    function getGrid() {
+      const cells = document.querySelectorAll(".cell");
+      const grid = [];
+      for (let i = 0; i < 9; i++) {
+        grid.push([]);
+        for (let j = 0; j < 9; j++) {
+          const val = cells[getIndex(i, j)].value;
+          grid[i].push(val === "" ? 0 : parseInt(val));
+        }
+      }
+      return grid;
+    }
+
+    function isSafe(grid, row, col, num) {
+      for (let i = 0; i < 9; i++) {
+        if ((grid[row][i] === num && i !== col) || (grid[i][col] === num && i !== row)) return false;
+      }
+      const boxRow = Math.floor(row / 3) * 3;
+      const boxCol = Math.floor(col / 3) * 3;
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          const r = boxRow + i;
+          const c = boxCol + j;
+          if ((r !== row || c !== col) && grid[r][c] === num) return false;
+        }
+      }
+      return true;
+    }
+
+    function validateCell(row, col) {
+      const grid = getGrid();
+      const val = grid[row][col];
+      if (val === 0) return true;
+      return isSafe(grid, row, col, val);
+    }
+
+    // Build board
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.inputMode = "numeric";
+        input.maxLength = 1;
+        input.classList.add("cell");
+
+        if (c % 3 === 0) input.classList.add("border-left");
+        if (r % 3 === 0) input.classList.add("border-top");
+        if (c === 8) input.classList.add("border-right");
+        if (r === 8) input.classList.add("border-bottom");
+
+        input.addEventListener("input", (e) => {
+          const val = e.target.value;
+          const cellIndex = Array.from(board.children).indexOf(e.target);
+          const row = Math.floor(cellIndex / 9);
+          const col = cellIndex % 9;
+
+          if (!/^[1-9]?$/.test(val)) {
+            e.target.value = "";
+            showError("Invalid input! Only digits 1–9 allowed.");
+            return;
+          }
+
+          if (!validateCell(row, col)) {
+            e.target.value = "";
+            showError("Duplicate detected in row, column or box!");
+          } else {
+            showError("");
+          }
+        });
+
+        board.appendChild(input);
+      }
+    }
+
+    function solve(grid) {
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+          if (grid[row][col] === 0) {
+            for (let num = 1; num <= 9; num++) {
+              if (isSafe(grid, row, col, num)) {
+                grid[row][col] = num;
+                if (solve(grid)) return true;
+                grid[row][col] = 0;
+              }
+            }
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    function solveSudoku() {
+      const grid = getGrid();
+      if (solve(grid)) {
+        const cells = document.querySelectorAll(".cell");
+        for (let i = 0; i < 9; i++) {
+          for (let j = 0; j < 9; j++) {
+            cells[getIndex(i, j)].value = grid[i][j];
+          }
+        }
+        showError("");
+      } else {
+        showError("No solution found!");
+      }
+    }
+
+    function resetBoard() {
+      document.querySelectorAll(".cell").forEach(cell => cell.value = "");
+      showError("");
+    }
+  </script>
+
+</body>
+</html>
